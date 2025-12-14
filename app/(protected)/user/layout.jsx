@@ -10,7 +10,7 @@ function Protected({children}) {
 
     useLayoutEffect(() => {
         if (!user){
-            redirect(`/user/singin?returnUrl=${returnUrl}`);
+            redirect(`/user/signin?returnUrl=${returnUrl}`);
         }
     }, []);
     return ( <>

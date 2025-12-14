@@ -1,6 +1,7 @@
-// lib/firebase.js
+
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey:  process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,8 +12,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Sprawdzenie, czy Firebase już został zainicjalizowany
+
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Eksport auth do logowania i rejestracji
+
 export const auth = getAuth(app);
+export const db = getFirestore(app);

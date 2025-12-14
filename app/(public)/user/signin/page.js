@@ -23,7 +23,7 @@ export default function SignInPage() {
       if (returnUrl) {
         router.push(returnUrl);
       } else {
-        router.push("/"); // domyślnie strona główna
+        router.push("/");
       }
     } catch (err) {
       console.error(err.code, err.message);

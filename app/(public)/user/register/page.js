@@ -31,23 +31,29 @@ export default function RegisterForm() {
       return;
     }
 
-    try {
-      setLoading(true);
-      // tworzenie użytkownika
-      await createUserWithEmailAndPassword(auth, email, password);
+   try {
+  setLoading(true);
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  console.log("User registered!");
 
-      // wylogowanie po rejestracji (Firebase automatycznie loguje)
-      await signOut(auth);
+  // Wylogowanie po rejestracji (Firebase automatycznie loguje)
+  await signOut(auth);
 
-      // przekierowanie do strony logowania
-      router.push("/user/signin");
-    } catch (error) {
-      setRegisterError(error.message);
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+  // Przekierowanie do logowania
+  router.push("/user/signin");
+
+} catch (error) {
+  if (error.code === "auth/email-already-in-use") {
+    setRegisterError("Ten adres email jest już zarejestrowany!");
+  } else {
+    setRegisterError(error.message);
+  }
+  console.error(error);
+} finally {
+  setLoading(false);
+}
   };
+
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 border rounded shadow text-black">
