@@ -36,7 +36,7 @@ export default function Topbar() {
 
         <nav className="md:ml-auto md:mr-auto flex flex-wrap items-center text-base justify-center">
           <a href="/articles" className="mr-5 hover:text-gray-900">Artykuły</a>
-          <a className="mr-5 hover:text-gray-900">Profil</a>
+          <a href="/user/profile"className="mr-5 hover:text-gray-900">Profil</a>
           
         </nav>
 
@@ -58,21 +58,23 @@ export default function Topbar() {
             </button>
           </div>
         ) : (
-          <>
-            <Link
-              href="/user/signin"
-              className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-            >
-              Logowanie
-            </Link>
-
-            <Link
-              href="/user/register"
-              className="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300"
-            >
-              Rejestracja
-            </Link>
-          </>
+          <div className="flex items-center gap-4">
+            <>
+              <Link
+                href="/user/signin"
+                className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              >
+                Logowanie
+              </Link>
+            
+              <Link
+                href="/user/register"
+                className="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300"
+              >
+                Rejestracja
+              </Link>
+            </>
+          </div>
         )}
       </div>
     </header>

@@ -2,15 +2,20 @@
 
 import { signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
 import { auth } from "@/app/lib/firebase";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const returnUrl = params.get("returnUrl") || "/user/profile";
 
+  const [returnUrl, setReturnUrl] = useState("/user/profile");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const url = params.get("returnUrl");
+    if (url) setReturnUrl(url);
+  }, [params]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -20,11 +25,7 @@ export default function SignInPage() {
     try {
       await setPersistence(auth, browserSessionPersistence);
       await signInWithEmailAndPassword(auth, email, password);
-      if (returnUrl) {
-        router.push(returnUrl);
-      } else {
-        router.push("/");
-      }
+      router.push(returnUrl);
     } catch (err) {
       console.error(err.code, err.message);
       setError("Niepoprawny email lub hasło");
@@ -58,5 +59,18 @@ export default function SignInPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow text-black">
+        <h2 className="text-2xl font-bold mb-4">Logowanie</h2>
+        <p>Ładowanie...</p>
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
   );
 }
