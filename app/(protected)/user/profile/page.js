@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/lib/AuthContext";
 import { db } from "@/app/lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
-
+import { FaUser, FaEnvelope, FaImage, FaMapMarkerAlt } from "react-icons/fa";
 
 export default function ProfileForm() {
   const { user } = useAuth();
@@ -14,56 +14,50 @@ export default function ProfileForm() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const [displayName, setDisplayName] = useState("");
+  const [photoURL, setPhotoURL] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
   const [zipCode, setZipCode] = useState("");
 
-    useEffect(() => {
+  useEffect(() => {
     if (!user) return;
 
-    const loadAddress = async () => {
+    const loadData = async () => {
       try {
         const snapshot = await getDoc(doc(db, "users", user.uid));
         if (snapshot.exists()) {
-          const address = snapshot.data().address;
-          setStreet(address?.street || "");
-          setCity(address?.city || "");
-          setZipCode(address?.zipCode || "");
+          const data = snapshot.data();
+          setDisplayName(data.displayName || "");
+          setPhotoURL(data.photoURL || "");
+          setStreet(data.address?.street || "");
+          setCity(data.address?.city || "");
+          setZipCode(data.address?.zipCode || "");
+        } else {
+          setDisplayName(user.displayName || "");
+          setPhotoURL(user.photoURL || "");
         }
       } catch (e) {
         console.error(e);
+        setError("Błąd podczas ładowania danych");
       } finally {
         setLoading(false);
       }
     };
 
-    loadAddress();
+    loadData();
   }, [user]);
 
-  // 🧱 DOPIERO TERAZ WARUNEK
-  if (!user) {
-    return <p>Nie jesteś zalogowany</p>;
-  }
+  if (!user) return <p>Nie jesteś zalogowany</p>;
+  if (loading) return <p>Ładowanie danych...</p>;
 
-  if (loading) {
-    return <p>Ładowanie danych...</p>;
-  }
-
-
-  // 🔹 SUBMIT
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    const displayName = e.target["displayName"].value;
-    const photoURL = e.target["photoURL"].value;
-
     try {
-      await updateProfile(user, {
-        displayName,
-        photoURL,
-      });
+      await updateProfile(user, { displayName, photoURL });
 
       await setDoc(
         doc(db, "users", user.uid),
@@ -71,11 +65,7 @@ export default function ProfileForm() {
           email: user.email,
           displayName,
           photoURL,
-          address: {
-            street,
-            city,
-            zipCode,
-          },
+          address: { street, city, zipCode }
         },
         { merge: true }
       );
@@ -83,101 +73,126 @@ export default function ProfileForm() {
       setSuccess("Profil został zapisany");
     } catch (e) {
       console.error(e);
-      if (e.code === "permission-denied") {
-        setError("Brak uprawnień do zapisu danych");
-      } else {
-        setError(e.message);
-      }
+      setError(e.code === "permission-denied" ? "Brak uprawnień do zapisu" : e.message);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 border rounded shadow text-black">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Profil użytkownika</h2>
+    <div className="min-h-[70vh] flex items-center justify-center">
+      <div className="w-full max-w-md bg-gray-900 text-white p-8 rounded-2xl shadow-xl">
 
-        {user.photoURL ? (
-          <img
-            src={user.photoURL}
-            alt="Zdjęcie profilowe"
-            className="w-24 h-24 rounded-full"
-          />
-        ) : (
-          <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
-            Brak zdjęcia
+        
+        <div className="flex flex-col items-center mb-6">
+          {photoURL ? (
+            <img
+              src={photoURL}
+              alt="Avatar"
+              className="w-20 h-20 rounded-full mb-3 object-cover"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center mb-3 text-xl">
+              <FaUser />
+            </div>
+          )}
+          <h2 className="text-2xl font-bold">Profil użytkownika</h2>
+        </div>
+
+        {/* Alerts */}
+        {error && (
+          <div className="mb-4 px-4 py-2 text-red-400 bg-red-500/10 rounded">
+            {error}
           </div>
         )}
+        {success && (
+          <div className="mb-4 px-4 py-2 text-green-400 bg-green-500/10 rounded">
+            {success}
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={onSubmit} className="space-y-4">
+
+          <div className="relative">
+            <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              name="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Nazwa wyświetlana"
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-green-500 text-white"
+            />
+          </div>
+
+          <div className="relative">
+            <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="email"
+              value={user.email}
+              readOnly
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-700 border border-gray-600 text-gray-300"
+            />
+          </div>
+
+          <div className="relative">
+            <FaImage className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              name="photoURL"
+              value={photoURL}
+              onChange={(e) => setPhotoURL(e.target.value)}
+              placeholder="URL zdjęcia"
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-green-500 text-white"
+            />
+          </div>
+
+          <div className="relative">
+            <FaMapMarkerAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={street}
+              onChange={(e) => setStreet(e.target.value)}
+              placeholder="Ulica"
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-green-500 text-white"
+            />
+          </div>
+
+          <div className="relative">
+            <FaMapMarkerAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Miasto"
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-green-500 text-white"
+            />
+          </div>
+
+          <div className="relative">
+            <FaMapMarkerAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
+              placeholder="Kod pocztowy"
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-green-500 text-white"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold"
+          >
+            Zaktualizuj profil
+          </button>
+
+        </form>
       </div>
-
-      {error && <div className="alert alert-error mb-4">{error}</div>}
-      {success && <div className="alert alert-success mb-4">{success}</div>}
-
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label>
-          Nazwa wyświetlana
-          <input
-            name="displayName"
-            defaultValue={user.displayName || ""}
-            className="input input-bordered w-full"
-          />
-        </label>
-
-        <label>
-          Email
-          <input
-            value={user.email}
-            readOnly
-            className="input input-bordered w-full bg-gray-100"
-          />
-        </label>
-
-        <label>
-          URL zdjęcia
-          <input
-            name="photoURL"
-            defaultValue={user.photoURL || ""}
-            className="input input-bordered w-full"
-          />
-        </label>
-
-        <label>
-          Ulica
-          <input
-            value={street}
-            onChange={(e) => setStreet(e.target.value)}
-            disabled={loading}
-            className="input input-bordered w-full"
-          />
-        </label>
-
-        <label>
-          Miasto
-          <input
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            disabled={loading}
-            className="input input-bordered w-full"
-          />
-        </label>
-
-        <label>
-          Kod pocztowy
-          <input
-            value={zipCode}
-            onChange={(e) => setZipCode(e.target.value)}
-            disabled={loading}
-            className="input input-bordered w-full"
-          />
-        </label>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn btn-primary"
-        >
-          Zaktualizuj profil
-        </button>
-      </form>
     </div>
   );
 }

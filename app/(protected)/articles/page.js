@@ -35,25 +35,27 @@ export default function ArticlesPage() {
     fetchArticles();
   }, [user]);
 
-  if (!user) return <p>Nie jesteś zalogowany</p>;
-  if (loading) return <p>Ładowanie artykułów...</p>;
+  if (!user) return <p className="text-center mt-10 text-red-600">Nie jesteś zalogowany</p>;
+  if (loading) return <p className="text-center mt-10">Ładowanie artykułów...</p>;
 
   return (
-    <div className="max-w-3xl mx-auto mt-10 text-black">
-      <h2 className="text-2xl font-bold mb-6">Twoje artykuły</h2>
+    <div className="max-w-4xl mx-auto mt-10 px-4 text-black">
+      <h2 className="text-3xl font-bold mb-6 text-center">Twoje artykuły</h2>
       {articles.length === 0 ? (
-        <p>Brak artykułów</p>
+        <p className="text-center text-gray-600">Brak artykułów</p>
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-6">
           {articles.map(article => (
-            <li key={article.id} className="border p-4 rounded shadow">
-              <h3 className="font-bold text-lg">{article.title}</h3>
-              <p>{article.content}</p>
-              {article.date?.toDate ? (
-                <small>{article.date.toDate().toLocaleString()}</small>
-              ) : (
-                <small>{article.date || "Brak daty"}</small>
-              )}
+            <li
+              key={article.id}
+              className="border border-gray-200 p-6 rounded-xl shadow hover:shadow-lg shadow-blue-300 shadow transition-shadow duration-300"
+            >
+              <h3 className="font-bold text-xl mb-2">{article.title}</h3>
+              <p className="text-gray-800 mb-4">{article.content}</p>
+              <div className="text-sm text-gray-500 flex justify-between">
+                <span>{article.date?.toDate ? article.date.toDate().toLocaleString() : article.date || "Brak daty"}</span>
+                <span>{user.email.split("@")[0]}</span>
+              </div>
             </li>
           ))}
         </ul>

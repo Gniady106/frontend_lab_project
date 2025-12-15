@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
 import Link from "next/link";
 import { useAuth } from "@/app/lib/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/app/lib/firebase";
 import { useRouter } from "next/navigation";
+import { FaPuzzlePiece } from "react-icons/fa";
 
 export default function Topbar() {
   const { user } = useAuth();
@@ -12,68 +13,62 @@ export default function Topbar() {
 
   const handleLogout = async () => {
     await signOut(auth);
-    router.push("/"); // po wylogowaniu redirect na stronę główną
+    router.push("/");
   };
 
   return (
-    <header className="text-gray-600 body-font">
-      <div className="container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center">
-        <a className="flex title-font font-medium items-center text-gray-900 mb-4 md:mb-0">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            className="w-10 h-10 text-white p-2 bg-green-500 rounded-full"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-          </svg>
-          <span className="ml-3 text-xl">Tailblocks</span>
-        </a>
+    <header className="h-16 bg-gray-900 border-b border-gray-800 text-white flex items-center px-6">
+      <div className="flex w-full items-center justify-between">
+        {/* LEFT – logo / tytuł */}
+        <div className="text-lg font-semibold tracking-wide">
+          <FaPuzzlePiece className="text-blue-400 text-xl" />
+        </div>
 
-        <nav className="md:ml-auto md:mr-auto flex flex-wrap items-center text-base justify-center">
-          <a href="/articles" className="mr-5 hover:text-gray-900">Artykuły</a>
-          <a href="/user/profile"className="mr-5 hover:text-gray-900">Profil</a>
-          
-        </nav>
-
-        {/* Jeśli użytkownik zalogowany */}
+        {/* RIGHT – auth section */}
         {user ? (
           <div className="flex items-center gap-4">
-            <Link
-              href="/user/profile"
-              className="rounded bg-gray-200 px-4 py-2 hover:bg-green-300"
-            >
-            <span className="text-gray-700 font-medium">Witaj, {user.email}</span>
-            </Link>
-          
+            {/* Avatar + greeting */}
+            <div className="flex items-center gap-3 bg-gray-800 px-3 py-1.5 rounded-full">
+              {user.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt="Avatar"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-sm">
+                  ?
+                </div>
+              )}
+
+              <span className="text-sm font-medium">
+                Witaj, {user.email.split("@")[0]}
+              </span>
+            </div>
+
+            {/* Logout */}
             <button
               onClick={handleLogout}
-              className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+              className="px-4 py-2 rounded-md bg-red-600 text-sm font-medium hover:bg-red-700 transition"
             >
               Wyloguj
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-4">
-            <>
-              <Link
-                href="/user/signin"
-                className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-              >
-                Logowanie
-              </Link>
-            
-              <Link
-                href="/user/register"
-                className="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300"
-              >
-                Rejestracja
-              </Link>
-            </>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/user/signin"
+              className="px-4 py-2 rounded-md bg-blue-600 text-sm font-medium hover:bg-blue-700 transition"
+            >
+              Logowanie
+            </Link>
+
+            <Link
+              href="/user/register"
+              className="px-4 py-2 rounded-md bg-green-600 text-sm font-medium hover:bg-green-700 transition"
+            >
+              Rejestracja
+            </Link>
           </div>
         )}
       </div>

@@ -1,29 +1,54 @@
+'use client';
+
 import Link from "next/link";
-import { FaHome, FaUser, FaSignInAlt } from "react-icons/fa";
+import {
+  FaHome,
+  FaUser,
+  FaSignInAlt,
+  FaNewspaper,
+  FaPuzzlePiece
+} from "react-icons/fa";
+import { useAuth } from "@/app/lib/AuthContext";
+import { usePathname } from "next/navigation";
 
 export default function Sidebar() {
+  const { user, loading } = useAuth();
+  const pathname = usePathname();
+
+  const navItem = (href, icon, label) => {
+    const isActive = pathname === href;
+
+    return (
+      <Link
+        href={href}
+        className={`
+          flex items-center gap-3 px-4 py-2 rounded-lg transition
+          ${isActive
+            ? "bg-blue-600 text-white"
+            : "text-gray-300 hover:bg-gray-800 hover:text-white"}
+        `}
+      >
+        <span className="text-lg">{icon}</span>
+        <span className="text-sm font-medium">{label}</span>
+      </Link>
+    );
+  };
+
   return (
-    <aside className="w-64 bg-gray-900 text-white flex flex-col p-4">
-      <h1 className="mb-6 text-xl font-bold">Frontend Lab</h1>
+    <aside className="w-64 min-h-screen bg-gray-900 text-white flex flex-col p-4 border-r border-gray-800">
+      {/* Logo / title */}
+      <h1 className="mb-8 text-xl font-bold tracking-wide">
+        Frontend Crossword
+      </h1>
 
-      <nav className="flex flex-col gap-4">
-        <Link href="/" className="flex items-center gap-2 hover:text-blue-400">
-          <FaHome /> Home
-        </Link>
+      {/* Navigation */}
+      <nav className="flex flex-col gap-1">
+        {navItem("/", <FaHome />, "Home")}
+        {navItem("/user/profile", <FaUser />, "Profil")}
+        {navItem("/articles", <FaNewspaper />, "Artykuły")}
+        {navItem("/crossword", <FaPuzzlePiece />, "Wykreślanka")}
 
-        <Link
-          href="/user/profile"
-          className="flex items-center gap-2 hover:text-blue-400"
-        >
-          <FaUser /> Profil
-        </Link>
-
-        <Link
-          href="/user/signin"
-          className="flex items-center gap-2 hover:text-blue-400"
-        >
-          <FaSignInAlt /> Logowanie
-        </Link>
+        {!user && !loading && navItem("/user/signin", <FaSignInAlt />, "Logowanie")}
       </nav>
     </aside>
   );

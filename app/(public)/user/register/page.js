@@ -1,101 +1,133 @@
 'use client';
 
-import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signOut
+} from "firebase/auth";
 import { useAuth } from "@/app/lib/AuthContext";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FaPuzzlePiece, FaEnvelope, FaLock } from "react-icons/fa";
 
 export default function RegisterForm() {
   const { user } = useAuth();
   const router = useRouter();
   const auth = getAuth();
 
-  const [registerError, setRegisterError] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (user) {
-    return null; // jeśli użytkownik jest zalogowany, nie pokazuj formularza
-  }
+  if (user) return null;
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setRegisterError("");
+    setError("");
 
-    const email = e.target["email"].value;
-    const password = e.target["password"].value;
-    const confirmPassword = e.target["confirmPassword"].value;
+    const email = e.target.email.value;
+    const password = e.target.password.value;
+    const confirmPassword = e.target.confirmPassword.value;
 
-    // walidacja równości haseł
     if (password !== confirmPassword) {
-      setRegisterError("Hasła nie są takie same!");
+      setError("Hasła nie są takie same");
       return;
     }
 
-   try {
-  setLoading(true);
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  console.log("User registered!");
+    try {
+      setLoading(true);
+      await createUserWithEmailAndPassword(auth, email, password);
 
-  // Wylogowanie po rejestracji (Firebase automatycznie loguje)
-  await signOut(auth);
+      // Firebase automatycznie loguje → wyloguj
+      await signOut(auth);
 
-  // Przekierowanie do logowania
-  router.push("/user/signin");
-
-} catch (error) {
-  if (error.code === "auth/email-already-in-use") {
-    setRegisterError("Ten adres email jest już zarejestrowany!");
-  } else {
-    setRegisterError(error.message);
-  }
-  console.error(error);
-} finally {
-  setLoading(false);
-}
+      router.push("/user/signin");
+    } catch (err) {
+      console.error(err);
+      if (err.code === "auth/email-already-in-use") {
+        setError("Ten adres email jest już zarejestrowany");
+      } else {
+        setError("Błąd rejestracji. Spróbuj ponownie");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 border rounded shadow text-black">
-      <h2 className="text-2xl font-bold mb-4">Rejestracja</h2>
+    <div className="min-h-[70vh] flex items-center justify-center">
+      <div className="w-full max-w-md bg-gray-900 text-white p-8 rounded-2xl shadow-xl">
 
-      {/* Alert DaisyUI dla błędu */}
-      {registerError && (
-        <div className="alert alert-error mb-4">
-          <span>{registerError}</span>
+        {/* Header */}
+        <div className="flex flex-col items-center mb-6">
+          
+          <h2 className="text-2xl font-bold">Rejestracja</h2>
+          
         </div>
-      )}
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          required
-          className="input input-bordered w-full"
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Hasło"
-          required
-          className="input input-bordered w-full"
-        />
-        <input
-          type="password"
-          name="confirmPassword"
-          placeholder="Powtórz hasło"
-          required
-          className="input input-bordered w-full"
-        />
-        <button
-          type="submit"
-          className={`btn btn-primary ${loading ? "loading" : ""}`}
-          disabled={loading}
+        {/* Error */}
+        {error && (
+          <div className="mb-4 rounded bg-red-500/10 border border-red-500 text-red-400 px-4 py-2 text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Form */}
+        <form
+          onSubmit={onSubmit}
+          className="space-y-4"
+          data-testid="register-form"
         >
-          Zarejestruj się
-        </button>
-      </form>
+
+          {/* Email */}
+          <div className="relative">
+            <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              required
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          {/* Password */}
+          <div className="relative">
+            <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="password"
+              name="password"
+              placeholder="Hasło"
+              required
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          {/* Confirm password */}
+          <div className="relative">
+            <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="Powtórz hasło"
+              required
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          {/* Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700 transition
+                       py-2 rounded font-semibold disabled:opacity-60"
+          >
+            {loading ? "Rejestrowanie..." : "Zarejestruj się"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
