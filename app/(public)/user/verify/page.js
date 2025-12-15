@@ -24,7 +24,7 @@ function VerifyEmailContent() {
     <div className="max-w-md mx-auto mt-10 p-6 border rounded-xl shadow-md text-black bg-white">
       <h2 className="text-2xl font-bold mb-4 text-center">Weryfikacja email</h2>
       <p className="mb-6 text-gray-700">
-        Email <strong>{email}</strong> nie został zweryfikowany. 
+        <strong>{email}</strong> nie został zweryfikowany. 
         Proszę kliknij link w emailu, który został wysłany podczas rejestracji.
       </p>
       <button

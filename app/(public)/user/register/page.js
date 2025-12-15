@@ -3,12 +3,13 @@
 import {
   getAuth,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signOut
 } from "firebase/auth";
 import { useAuth } from "@/app/lib/AuthContext";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaPuzzlePiece, FaEnvelope, FaLock } from "react-icons/fa";
+import { FaEnvelope, FaLock } from "react-icons/fa";
 
 export default function RegisterForm() {
   const { user } = useAuth();
@@ -35,12 +36,16 @@ export default function RegisterForm() {
 
     try {
       setLoading(true);
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      // Wyślij maila weryfikacyjnego
+      await sendEmailVerification(userCredential.user);
 
       // Firebase automatycznie loguje → wyloguj
       await signOut(auth);
 
-      router.push("/user/signin");
+      // Przekierowanie do strony weryfikacji email
+      router.push(`/user/verify`);
     } catch (err) {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {
@@ -56,29 +61,17 @@ export default function RegisterForm() {
   return (
     <div className="min-h-[70vh] flex items-center justify-center">
       <div className="w-full max-w-md bg-gray-900 text-white p-8 rounded-2xl shadow-xl">
-
-        {/* Header */}
         <div className="flex flex-col items-center mb-6">
-          
           <h2 className="text-2xl font-bold">Rejestracja</h2>
-          
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-4 rounded bg-red-500/10 border border-red-500 text-red-400 px-4 py-2 text-sm">
             {error}
           </div>
         )}
 
-        {/* Form */}
-        <form
-          onSubmit={onSubmit}
-          className="space-y-4"
-          data-testid="register-form"
-        >
-
-          {/* Email */}
+        <form onSubmit={onSubmit} className="space-y-4" data-testid="register-form">
           <div className="relative">
             <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -86,12 +79,10 @@ export default function RegisterForm() {
               name="email"
               placeholder="Email"
               required
-              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
-                         focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
 
-          {/* Password */}
           <div className="relative">
             <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -99,12 +90,10 @@ export default function RegisterForm() {
               name="password"
               placeholder="Hasło"
               required
-              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
-                         focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
 
-          {/* Confirm password */}
           <div className="relative">
             <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -112,17 +101,14 @@ export default function RegisterForm() {
               name="confirmPassword"
               placeholder="Powtórz hasło"
               required
-              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700
-                         focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full pl-10 pr-4 py-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
 
-          {/* Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 transition
-                       py-2 rounded font-semibold disabled:opacity-60"
+            className="w-full bg-green-600 hover:bg-green-700 transition py-2 rounded font-semibold disabled:opacity-60"
           >
             {loading ? "Rejestrowanie..." : "Zarejestruj się"}
           </button>

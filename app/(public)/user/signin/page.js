@@ -1,10 +1,10 @@
 'use client';
 
-import { signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
+import { signInWithEmailAndPassword, setPersistence, browserSessionPersistence, signOut } from "firebase/auth";
 import { auth } from "@/app/lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
-import { FaPuzzlePiece, FaEnvelope, FaLock } from "react-icons/fa";
+import { FaEnvelope, FaLock } from "react-icons/fa";
 
 function SignInForm() {
   const router = useRouter();
@@ -29,8 +29,20 @@ function SignInForm() {
 
     try {
       await setPersistence(auth, browserSessionPersistence);
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Sprawdzenie weryfikacji email
+      if (!userCredential.user.emailVerified) {
+        // Wyloguj użytkownika
+        await signOut(auth);
+        // Przekieruj na stronę weryfikacji
+        router.push(`/user/verify?email=${encodeURIComponent(email)}`);
+        return;
+      }
+
+      // Jeśli zweryfikowany, przekieruj do docelowego URL
       router.push(returnUrl);
+
     } catch (err) {
       console.error(err);
       setError("Niepoprawny email lub hasło");
@@ -42,12 +54,8 @@ function SignInForm() {
   return (
     <div className="min-h-[70vh] flex items-center justify-center">
       <div className="w-full max-w-md bg-gray-900 text-white p-8 rounded-2xl shadow-xl">
-        
-        {/* Header */}
         <div className="flex flex-col items-center mb-6">
-    
           <h2 className="text-2xl font-bold">Zaloguj się</h2>
-      
         </div>
 
         {error && (
@@ -56,10 +64,7 @@ function SignInForm() {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={onSubmit} className="space-y-4" data-testid="login-form">
-          
-          {/* Email */}
           <div className="relative">
             <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -72,7 +77,6 @@ function SignInForm() {
             />
           </div>
 
-          {/* Password */}
           <div className="relative">
             <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -85,7 +89,6 @@ function SignInForm() {
             />
           </div>
 
-          {/* Button */}
           <button
             type="submit"
             disabled={loading}

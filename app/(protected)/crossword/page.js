@@ -2,9 +2,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { Check, RotateCcw } from 'lucide-react';
+import { useAuth } from "@/app/lib/AuthContext";
+import { useRouter } from "next/navigation";
 
 const WordSearchGame = () => {
   // Konfiguracja gry
+
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+useEffect(() => {
+    if (!loading && !user) {
+      // jeśli użytkownik nie jest zalogowany, przekieruj na login
+      router.push('/user/signin?returnUrl=/crossword');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    // jeśli dane się ładują lub brak użytkownika – pokaż loader lub nic
+    return <p className="text-center mt-20">Ładowanie...</p>;
+  }
+
   const defaultConfig = {
     gridSize: 10,
     backgroundColor: '#ffffff',
