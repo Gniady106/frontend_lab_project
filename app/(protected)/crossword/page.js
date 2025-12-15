@@ -1,28 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Check, RotateCcw } from 'lucide-react';
+import { Check, RotateCcw, Save, Upload } from 'lucide-react';
 import { useAuth } from "@/app/lib/AuthContext";
 import { useRouter } from "next/navigation";
+import { db } from "@/app/lib/firebase";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 const WordSearchGame = () => {
-  // Konfiguracja gry
-
   const { user, loading } = useAuth();
   const router = useRouter();
-
-useEffect(() => {
-    if (!loading && !user) {
-      // jeśli użytkownik nie jest zalogowany, przekieruj na login
-      router.push('/user/signin?returnUrl=/crossword');
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    // jeśli dane się ładują lub brak użytkownika – pokaż loader lub nic
-    return <p className="text-center mt-20">Ładowanie...</p>;
-  }
-
+  
   const defaultConfig = {
     gridSize: 10,
     backgroundColor: '#ffffff',
@@ -35,95 +23,29 @@ useEffect(() => {
     fontFamily: 'Arial'
   };
 
+  const dictionary = ['REACT', 'JAVASCRIPT', 'HTML', 'CSS', 'NODE', 'PYTHON'];
+
+  // WSZYSTKIE HOOKI MUSZĄ BYĆ NA GÓRZE, PRZED JAKIMKOLWIEK RETURN
   const [config, setConfig] = useState(defaultConfig);
   const [showConfig, setShowConfig] = useState(false);
-
-  // Słownik słów do znalezienia
-  const dictionary = ['REACT', 'JAVASCRIPT', 'HTML', 'CSS', 'NODE', "PYTHON"];
-  
-  // Przechowywanie pozycji słów
   const [wordPositions, setWordPositions] = useState([]);
+  const [grid, setGrid] = useState([]);
+  const [selectedCells, setSelectedCells] = useState([]);
+  const [foundWords, setFoundWords] = useState([]);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [gameWon, setGameWon] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+  const [initialized, setInitialized] = useState(false);
 
-  // Generowanie planszy
-  const generateGrid = () => {
-    const size = config.gridSize;
-    let attempts = 0;
-    let grid;
-    let positions;
-    
-    // Próbuj generować planszę aż wszystkie słowa zostaną umieszczone
-    while (attempts < 50) {
-      grid = Array(size).fill(null).map(() => 
-        Array(size).fill(null).map(() => '_')
-      );
-      
-      positions = [];
-      let allPlaced = true;
-
-      // Umieszczanie słów na planszy
-      for (const word of dictionary) {
-        let placed = false;
-        let wordAttempts = 0;
-        
-        while (!placed && wordAttempts < 200) {
-          const direction = Math.floor(Math.random() * 8);
-          const row = Math.floor(Math.random() * size);
-          const col = Math.floor(Math.random() * size);
-          
-          if (canPlaceWord(grid, word, row, col, direction, size)) {
-            const wordPos = placeWord(grid, word, row, col, direction);
-            positions.push(wordPos);
-            placed = true;
-          }
-          wordAttempts++;
-        }
-        
-        if (!placed) {
-          allPlaced = false;
-          break;
-        }
-      }
-      
-      if (allPlaced) {
-        // Wypełnij puste miejsca losowymi literami
-        for (let i = 0; i < size; i++) {
-          for (let j = 0; j < size; j++) {
-            if (grid[i][j] === '_') {
-              grid[i][j] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-            }
-          }
-        }
-        setWordPositions(positions);
-        return grid;
-      }
-      
-      attempts++;
-    }
-    
-    // Jeśli nie udało się wygenerować, zwróć pustą siatkę
-    console.error('Nie udało się wygenerować planszy');
-    return Array(size).fill(null).map(() => 
-      Array(size).fill(null).map(() => 
-        String.fromCharCode(65 + Math.floor(Math.random() * 26))
-      )
-    );
-  };
-
+  // Funkcje pomocnicze
   const canPlaceWord = (grid, word, row, col, direction, size) => {
     const directions = [
-      [0, 1],   // prawo
-      [1, 0],   // dół
-      [1, 1],   // przekątna prawo-dół
-      [-1, 1],  // przekątna prawo-góra
-      [0, -1],  // lewo
-      [-1, 0],  // góra
-      [-1, -1], // przekątna lewo-góra
-      [1, -1]   // przekątna lewo-dół
+      [0, 1], [1, 0], [1, 1], [-1, 1],
+      [0, -1], [-1, 0], [-1, -1], [1, -1]
     ];
 
     const [dRow, dCol] = directions[direction];
     
-    // Sprawdź czy słowo mieści się w siatce
     for (let i = 0; i < word.length; i++) {
       const newRow = row + (dRow * i);
       const newCol = col + (dCol * i);
@@ -132,7 +54,6 @@ useEffect(() => {
         return false;
       }
       
-      // Sprawdź czy komórka jest pusta lub zawiera tę samą literę
       const currentCell = grid[newRow][newCol];
       if (currentCell !== '_' && currentCell !== word[i]) {
         return false;
@@ -158,24 +79,165 @@ useEffect(() => {
       positions.push({ row: newRow, col: newCol });
     }
     
-    return {
-      word,
-      positions,
-      direction
-    };
+    return { word, positions, direction };
   };
 
-  const [grid, setGrid] = useState(() => generateGrid());
-  const [selectedCells, setSelectedCells] = useState([]);
-  const [foundWords, setFoundWords] = useState([]);
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [gameWon, setGameWon] = useState(false);
+  const generateGrid = () => {
+    const size = config.gridSize;
+    let attempts = 0;
+    let grid;
+    let positions;
+    
+    while (attempts < 50) {
+      grid = Array(size).fill(null).map(() => 
+        Array(size).fill(null).map(() => '_')
+      );
+      
+      positions = [];
+      let allPlaced = true;
 
+      for (const word of dictionary) {
+        let placed = false;
+        let wordAttempts = 0;
+        
+        while (!placed && wordAttempts < 200) {
+          const direction = Math.floor(Math.random() * 8);
+          const row = Math.floor(Math.random() * size);
+          const col = Math.floor(Math.random() * size);
+          
+          if (canPlaceWord(grid, word, row, col, direction, size)) {
+            const wordPos = placeWord(grid, word, row, col, direction);
+            positions.push(wordPos);
+            placed = true;
+          }
+          wordAttempts++;
+        }
+        
+        if (!placed) {
+          allPlaced = false;
+          break;
+        }
+      }
+      
+      if (allPlaced) {
+        for (let i = 0; i < size; i++) {
+          for (let j = 0; j < size; j++) {
+            if (grid[i][j] === '_') {
+              grid[i][j] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            }
+          }
+        }
+        setWordPositions(positions);
+        return grid;
+      }
+      
+      attempts++;
+    }
+    
+    console.error('Nie udało się wygenerować planszy');
+    return Array(size).fill(null).map(() => 
+      Array(size).fill(null).map(() => 
+        String.fromCharCode(65 + Math.floor(Math.random() * 26))
+      )
+    );
+  };
+
+  // Zapisz stan gry do Firebase
+ const saveGameState = async () => {
+  if (!user) return;
+
+  try {
+    setSaveStatus('Zapisywanie...');
+
+    // Spłaszcz grid
+    const flatGrid = grid.map(row => row.join('')); // np. ["REACT_____", "JAVASCRIPT", ...]
+
+    const gameState = {
+      grid: flatGrid,
+      foundWords,
+      wordPositions,
+      config,
+      gameWon,
+      lastSaved: new Date().toISOString(),
+      userId: user.uid
+    };
+
+    await setDoc(doc(db, 'wordSearchGames', user.uid), gameState);
+    setSaveStatus('Zapisano! ✓');
+    setTimeout(() => setSaveStatus(''), 2000);
+  } catch (error) {
+    console.error('Błąd zapisu:', error);
+    setSaveStatus('Błąd zapisu ✗');
+    setTimeout(() => setSaveStatus(''), 2000);
+  }
+};
+
+  // Wczytaj stan gry z Firebase
+  // Wczytaj stan gry z Firebase
+const loadGameState = async () => {
+  if (!user) return;
+
+  try {
+    const docRef = doc(db, 'wordSearchGames', user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+
+      // Odtwórz grid z tablicy stringów
+      const restoredGrid = (data.grid || []).map(rowStr => rowStr.split(''));
+
+      setGrid(restoredGrid);
+      setFoundWords(data.foundWords || []);
+      setWordPositions(data.wordPositions || []);
+      setConfig(data.config || defaultConfig);
+      setGameWon(data.gameWon || false);
+      console.log('Wczytano zapisany stan gry');
+    } else {
+      // Jeśli nie ma zapisu, wygeneruj nową grę
+      setGrid(generateGrid());
+    }
+    setInitialized(true);
+  } catch (error) {
+    console.error('Błąd wczytywania:', error);
+    setGrid(generateGrid());
+    setInitialized(true);
+  }
+};
+
+
+  // Przekierowanie niezalogowanych użytkowników
   useEffect(() => {
-    if (foundWords.length === dictionary.length) {
+    if (!loading && !user) {
+      router.push('/user/signin?returnUrl=/crossword');
+    }
+  }, [user, loading, router]);
+
+  // Wczytaj stan gry po zalogowaniu
+  useEffect(() => {
+    if (user && !initialized) {
+      loadGameState();
+    }
+  }, [user, initialized]);
+
+  // Auto-zapis po każdej zmianie foundWords
+  useEffect(() => {
+    if (user && foundWords.length > 0 && initialized) {
+      saveGameState();
+    }
+  }, [foundWords]);
+
+  // Sprawdź czy gra wygrana
+  useEffect(() => {
+    if (foundWords.length === dictionary.length && foundWords.length > 0) {
       setGameWon(true);
     }
   }, [foundWords]);
+
+  // Pokaż loader podczas ładowania
+  if (loading || !user || !initialized) {
+    return <p className="text-center mt-20">Ładowanie...</p>;
+  }
 
   const getCellKey = (row, col) => `${row}-${col}`;
 
@@ -190,9 +252,7 @@ useEffect(() => {
     const lastCell = selectedCells[selectedCells.length - 1];
     if (!lastCell) return;
 
-    // Sprawdź czy ruch jest w linii prostej
     if (isInLine(selectedCells[0], { row, col })) {
-      // Dodaj wszystkie komórki między pierwszą a obecną
       const cellsBetween = getCellsBetween(selectedCells[0], { row, col });
       setSelectedCells(cellsBetween);
     }
@@ -229,7 +289,6 @@ useEffect(() => {
       return;
     }
 
-    // Sprawdź czy zaznaczone litery tworzą słowo
     const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
     const reverseWord = word.split('').reverse().join('');
 
@@ -248,7 +307,6 @@ useEffect(() => {
 
   const isCellFound = (row, col) => {
     return foundWords.some(word => {
-      // Sprawdź wszystkie możliwe pozycje słowa na planszy
       return checkIfCellInWord(row, col, word);
     });
   };
@@ -297,7 +355,11 @@ useEffect(() => {
     setSelectedCells([]);
     setFoundWords([]);
     setGameWon(false);
-    setGrid(generateGrid());
+    const newGrid = generateGrid();
+    setGrid(newGrid);
+    if (user) {
+      saveGameState();
+    }
   };
 
   const getCellStyle = (row, col) => {
@@ -343,6 +405,20 @@ useEffect(() => {
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <h1 style={{ textAlign: 'center', color: config.textColor }}>Gra Wykreślanka</h1>
 
+        {saveStatus && (
+          <div style={{
+            textAlign: 'center',
+            padding: '10px',
+            backgroundColor: saveStatus.includes('✓') ? '#10b981' : saveStatus.includes('✗') ? '#ef4444' : '#3b82f6',
+            color: 'white',
+            borderRadius: '6px',
+            marginBottom: '20px',
+            fontWeight: 'bold'
+          }}>
+            {saveStatus}
+          </div>
+        )}
+
         {gameWon && (
           <div style={{ 
             backgroundColor: config.foundColor, 
@@ -354,12 +430,11 @@ useEffect(() => {
             fontSize: '24px',
             fontWeight: 'bold'
           }}>
-            
             <div><Check size={40} style={{ marginBottom: '10px', display: 'inline-block'}} /> Gratulacje! Znalazłeś wszystkie słowa!</div>
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button 
             onClick={() => setShowConfig(!showConfig)}
             style={{
@@ -375,6 +450,43 @@ useEffect(() => {
             {showConfig ? 'Ukryj konfigurację' : 'Pokaż konfigurację'}
           </button>
 
+          <button 
+            onClick={saveGameState}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Save size={20} />
+            Zapisz grę
+          </button>
+
+          <button 
+            onClick={loadGameState}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Upload size={20} />
+            Wczytaj grę
+          </button>
         </div>
 
         {showConfig && (
@@ -388,7 +500,6 @@ useEffect(() => {
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: '15px'
           }}>
-
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
                 Kolor komórek:
@@ -424,12 +535,10 @@ useEffect(() => {
                 style={{ width: '100%', height: '40px', borderRadius: '4px', border: '1px solid #ccc' }}
               />
             </div>
-
-
           </div>
         )}
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '40px' }}>
           <div>
             <h2 style={{ color: config.textColor }}>Plansza</h2>
             <div 
@@ -485,10 +594,8 @@ useEffect(() => {
                   {foundWords.includes(word) && <Check size={20} />}
                   {word}
                 </li>
-                
               ))}
             </ul>
-            
 
             <div style={{ 
               marginBottom: '8px', 
@@ -500,26 +607,25 @@ useEffect(() => {
               <strong>Znaleziono: {foundWords.length} / {dictionary.length}</strong>
             </div>
             
-          <button 
-            onClick={resetGame}
-            style={{
-        
-              padding: '15px',
-              backgroundColor: '#ef4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              width: '100%'
-            }}
-          >
-            <RotateCcw size={20} />
-            Nowa gra
-          </button>
+            <button 
+              onClick={resetGame}
+              style={{
+                padding: '15px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%'
+              }}
+            >
+              <RotateCcw size={20} />
+              Nowa gra
+            </button>
           </div>
         </div>
       </div>
