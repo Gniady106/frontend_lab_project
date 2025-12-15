@@ -36,12 +36,12 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 min-h-screen bg-gray-900 text-white flex flex-col p-4 border-r border-gray-800">
-      {/* Logo / title */}
+     
       <h1 className="mb-8 text-xl font-bold tracking-wide">
-        Frontend Crossword
+        Crossword
       </h1>
 
-      {/* Navigation */}
+  
       <nav className="flex flex-col gap-1">
         {navItem("/", <FaHome />, "Home")}
         {navItem("/user/profile", <FaUser />, "Profil")}

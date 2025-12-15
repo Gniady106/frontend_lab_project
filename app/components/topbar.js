@@ -19,15 +19,15 @@ export default function Topbar() {
   return (
     <header className="h-16 bg-gray-900 border-b border-gray-800 text-white flex items-center px-6">
       <div className="flex w-full items-center justify-between">
-        {/* LEFT – logo / tytuł */}
+      
         <div className="text-lg font-semibold tracking-wide">
           <FaPuzzlePiece className="text-blue-400 text-xl" />
         </div>
 
-        {/* RIGHT – auth section */}
+        
         {user ? (
           <div className="flex items-center gap-4">
-            {/* Avatar + greeting */}
+          
             <div className="flex items-center gap-3 bg-gray-800 px-3 py-1.5 rounded-full">
               {user.photoURL ? (
                 <img
@@ -46,7 +46,7 @@ export default function Topbar() {
               </span>
             </div>
 
-            {/* Logout */}
+          
             <button
               onClick={handleLogout}
               className="px-4 py-2 rounded-md bg-red-600 text-sm font-medium hover:bg-red-700 transition"

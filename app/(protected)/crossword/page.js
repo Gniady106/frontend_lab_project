@@ -25,7 +25,7 @@ const WordSearchGame = () => {
 
   const dictionary = ['REACT', 'JAVASCRIPT', 'HTML', 'CSS', 'NODE', 'PYTHON'];
 
-  // WSZYSTKIE HOOKI MUSZĄ BYĆ NA GÓRZE, PRZED JAKIMKOLWIEK RETURN
+
   const [config, setConfig] = useState(defaultConfig);
   const [showConfig, setShowConfig] = useState(false);
   const [wordPositions, setWordPositions] = useState([]);
@@ -37,7 +37,7 @@ const WordSearchGame = () => {
   const [saveStatus, setSaveStatus] = useState('');
   const [initialized, setInitialized] = useState(false);
 
-  // Funkcje pomocnicze
+ 
   const canPlaceWord = (grid, word, row, col, direction, size) => {
     const directions = [
       [0, 1], [1, 0], [1, 1], [-1, 1],
@@ -142,15 +142,15 @@ const WordSearchGame = () => {
     );
   };
 
-  // Zapisz stan gry do Firebase
+
  const saveGameState = async () => {
   if (!user) return;
 
   try {
     setSaveStatus('Zapisywanie...');
 
-    // Spłaszcz grid
-    const flatGrid = grid.map(row => row.join('')); // np. ["REACT_____", "JAVASCRIPT", ...]
+   
+    const flatGrid = grid.map(row => row.join(''));
 
     const gameState = {
       grid: flatGrid,
@@ -172,8 +172,7 @@ const WordSearchGame = () => {
   }
 };
 
-  // Wczytaj stan gry z Firebase
-  // Wczytaj stan gry z Firebase
+ 
 const loadGameState = async () => {
   if (!user) return;
 
@@ -184,7 +183,7 @@ const loadGameState = async () => {
     if (docSnap.exists()) {
       const data = docSnap.data();
 
-      // Odtwórz grid z tablicy stringów
+    
       const restoredGrid = (data.grid || []).map(rowStr => rowStr.split(''));
 
       setGrid(restoredGrid);
@@ -194,7 +193,7 @@ const loadGameState = async () => {
       setGameWon(data.gameWon || false);
       console.log('Wczytano zapisany stan gry');
     } else {
-      // Jeśli nie ma zapisu, wygeneruj nową grę
+      
       setGrid(generateGrid());
     }
     setInitialized(true);
@@ -206,14 +205,14 @@ const loadGameState = async () => {
 };
 
 
-  // Przekierowanie niezalogowanych użytkowników
+ 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/user/signin?returnUrl=/crossword');
     }
   }, [user, loading, router]);
 
-  // Wczytaj stan gry po zalogowaniu
+
   useEffect(() => {
     if (user && !initialized) {
       loadGameState();

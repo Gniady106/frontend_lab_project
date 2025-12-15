@@ -97,7 +97,7 @@ export default function ProfileForm() {
           <h2 className="text-2xl font-bold">Profil użytkownika</h2>
         </div>
 
-        {/* Alerts */}
+        
         {error && (
           <div className="mb-4 px-4 py-2 text-red-400 bg-red-500/10 rounded">
             {error}
@@ -109,7 +109,7 @@ export default function ProfileForm() {
           </div>
         )}
 
-        {/* Form */}
+        
         <form onSubmit={onSubmit} className="space-y-4">
 
           <div className="relative">
